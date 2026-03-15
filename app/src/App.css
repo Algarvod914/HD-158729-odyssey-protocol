@@ -1,0 +1,158 @@
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: white;
+}
+
+/* Focus styles */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Glitch animation for high infection levels */
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+.glitch-effect {
+  animation: glitch 0.3s infinite;
+}
+
+/* Scanline effect */
+.scanline {
+  position: relative;
+}
+
+.scanline::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 212, 255, 0.3);
+  animation: scanline 4s linear infinite;
+}
+
+@keyframes scanline {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+/* CRT flicker */
+@keyframes flicker {
+  0% {
+    opacity: 0.97;
+  }
+  5% {
+    opacity: 0.95;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  20% {
+    opacity: 0.99;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.97;
+  }
+}
+
+.crt-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+/* Text shadow for terminal effect */
+.terminal-text {
+  text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+}
+
+/* Infection glow */
+.infection-glow {
+  box-shadow: 0 0 20px rgba(255, 0, 64, 0.5);
+}
+
+/* Button hover glow */
+button:hover {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+/* Responsive font sizes */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Prevent text selection on game elements */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
