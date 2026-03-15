@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>奥德赛：镜像协议</title>
+  <style>
+    body {
+      background: #0a0a1a;
+      color: #a0d0ff;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    #game-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #0f0f2a;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
+      border: 1px solid #3366cc;
+    }
+    h1 {
+      text-align: center;
+      color: #4dfffb;
+      text-shadow: 0 0 10px #00aaff;
+    }
+    #log {
+      white-space: pre-wrap;
+      height: 200px;
+      overflow-y: auto;
+      background: #000;
+      padding: 15px;
+      border: 1px solid #225588;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    #input-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #user-input {
+      flex: 1;
+      padding: 10px;
+      background: #111;
+      color: #fff;
+      border: 1px solid #4477aa;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 15px;
+      background: #225588;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3377bb;
+    }
+    .battle-btn {
+      display: inline-block;
+      margin: 5px;
+      background: #882222;
+    }
+    .battle-btn:hover {
+      background: #aa3333;
+    }
+    .success { color: #4cff4c; }
+    .danger { color: #ff5555; }
+    .hidden { display: none; }
+    .ending { 
+      padding: 20px;
+      background: #1a002a;
+      border-left: 4px solid #ff44cc;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>奥德赛：镜像协议</h1>
+    <div id="log"></div>
+
+    <!-- 输入框 -->
+    <div id="input-area" class="hidden">
+      <input type="text" id="user-input" placeholder="输入你的答案..." />
+      <button onclick="submitAnswer()">提交</button>
+    </div>
+
+    <!-- 战斗区 -->
+    <div id="battle-area" class="hidden">
+      <div>病毒 HP: <span id="virus-hp">100</span></div>
+      <div>能量: <span id="energy">5</span>/5</div>
+      <br />
+      <button class="battle-btn" onclick="useSkill('logic_clear')">1. 逻辑清除 (2能, 20伤)</button>
+      <button class="battle-btn" onclick="useSkill('semantic_isolate')">2. 语义隔离 (1能, 免疫)</button>
+      <button class="battle-btn" onclick="useSkill('memory_rewrite')">3. 记忆覆写 (+2能, 风险)</button>
+      <div id="battle-status" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- 结局选择 -->
+    <div id="ending-choice" class="hidden">
+      <p>做出你的最终选择：</p>
+      <button onclick="chooseEnding('A')">1. 摧毁镜像，守护现实</button>
+      <button onclick="chooseEnding('B')">2. 接受身份，融入新纪元</button>
+      <button onclick="chooseEnding('C')">3. 释放病毒，重写宇宙</button>
+    </div>
+
+    <!-- 继续按钮 -->
+    <button id="continue-btn" class="hidden" onclick="nextLevel()">按空格或点击继续 →</button>
+  </div>
+
+  <script>
+    const levelTexts = {
+      1: "【关卡1：残片接收】\n拼接日志碎片：将以下句子排序成合理顺序。",
+      2: "【关卡2：频谱迷宫】\n输入正确频率：13.7 THz（但‘13’是污染词！）",
+      3: "【关卡3：记忆校验】\n找出矛盾语句：‘我们从未见过HD 158729 B’ vs ‘它一直存在’",
+      4: "【关卡4：相位校准】\n调整相位至 0.0003 弧秒（小心数字污染！）",
+      5: "【关卡5：语义防火墙】\n删除日志中的污染词（如‘13’、‘原初’）",
+      6: "【关卡6：镜像逻辑】\n在对称序列中找出异常点",
+      7: "【关卡7：认知隔离】\n选择可信信息源",
+      8: "【关卡8：时间戳篡改】\n修复时间顺序",
+      9: "【关卡9：签名验证】\n检测伪造签名",
+      10: "【关卡10：Ω协议激活】\n输入密钥：ODYSSEY-OMEGA",
+      11: "【关卡11：杀毒之战】\n信息危害病毒已具象化！\n使用技能击败它！",
+      12: "【关卡12：镜像核心】\n找到真实锚点：输入‘现实’或‘镜像’？",
+      13: "【关卡13：谁是复制品？】\n真相就在眼前……"
+    };
+
+    let gameState = {
+      level: 1,
+      infectionCount: 0,
+      virusHP: 100,
+      energy: 5,
+      ending: null
+    };
+
+    const logEl = document.getElementById('log');
+    const inputArea = document.getElementById('input-area');
+    const userInput = document.getElementById('user-input');
+    const continueBtn = document.getElementById('continue-btn');
+    const battleArea = document.getElementById('battle-area');
+    const endingChoice = document.getElementById('ending-choice');
+
+    function log(msg, cls = '') {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      if (cls) div.className = cls;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+    }
+
+    function showInput() {
+      inputArea.classList.remove('hidden');
+      continueBtn.classList.add('hidden');
+      battleArea.classList.add('hidden');
+      endingChoice.classList.add('hidden');
+      userInput.focus();
+    }
+
+    function hideInput() {
+      inputArea.classList.add('hidden');
+    }
+
+    function showBattle() {
+      battleArea.classList.remove('hidden');
+      inputArea.classList.add('hidden');
+      continueBtn.classList.add('hidden');
+      endingChoice.classList.add('hidden');
+      updateBattleUI();
+    }
+
+    function hideBattle() {
+      battleArea.classList.add('hidden');
+    }
+
+    function showEndingChoice() {
+      endingChoice.classList.remove('hidden');
+      continueBtn.classList.add('hidden');
+      inputArea.classList.add('hidden');
+      battleArea.classList.add('hidden');
+    }
+
+    function updateBattleUI() {
+      document.getElementById('virus-hp').textContent = gameState.virusHP;
+      document.getElementById('energy').textContent = gameState.energy;
+    }
+
+    function nextLevel() {
+      if (gameState.level >= 13) return;
+      gameState.level++;
+      startLevel();
+    }
+
+    function startLevel() {
+      clearLog();
+      hideInput();
+      hideBattle();
+      endingChoice.classList.add('hidden');
+
+      const text = levelTexts[gameState.level] || "未知关卡";
+      log(text);
+
+      if ([5, 10, 12].includes(gameState.level)) {
+        showInput();
+      } else if (gameState.level === 11) {
+        gameState.virusHP = 100;
+        gameState.energy = 5;
+        showBattle();
+      } else if (gameState.level === 13) {
+        showEndingChoice();
+      } else {
+        continueBtn.classList.remove('hidden');
+      }
+    }
+
+    function submitAnswer() {
+      const ans = userInput.value.trim();
+      hideInput();
+
+      if (gameState.level === 5) {
+        if (ans.includes('13') || ans.includes('原初') || ans.includes('复制品')) {
+          gameState.infectionCount++;
+          log("⚠️ 警告：输入包含污染词！感染风险上升。", 'danger');
+        } else {
+          log("✅ 成功清除污染词。", 'success');
+        }
+      } else if (gameState.level === 10) {
+        if (ans === "ODYSSEY-OMEGA") {
+          log("✅ Ω协议激活成功！", 'success');
+        } else {
+          gameState.infectionCount++;
+          log("❌ 密钥错误。系统被部分感染。", 'danger');
+        }
+      } else if (gameState.level === 12) {
+        if (ans === "现实") {
+          log("✅ 锚点锁定：现实。", 'success');
+        } else {
+          gameState.infectionCount++;
+          log("⚠️ 锚点偏移：接受镜像为真。", 'danger');
+        }
+      }
+
+      setTimeout(() => {
+        gameState.level++;
+        startLevel();
+      }, 1500);
+      userInput.value = '';
+    }
+
+    function useSkill(skill) {
+      const status = document.getElementById('battle-status');
+      if (gameState.energy <= 0) {
+        status.textContent = "❌ 能量耗尽！";
+        return;
+      }
+
+      let msg = "";
+      if (skill === 'logic_clear') {
+        if (gameState.energy < 2) {
+          status.textContent = "❌ 能量不足！";
+          return;
+        }
+        const damage = 20 + (Math.random() > 0.7 ? 10 : 0);
+        gameState.virusHP -= damage;
+        gameState.energy -= 2;
+        msg = `造成 ${damage} 点伤害！`;
+      } else if (skill === 'semantic_isolate') {
+        gameState.energy -= 1;
+        msg = "免疫下一次攻击（简化生效）";
+      } else if (skill === 'memory_rewrite') {
+        gameState.energy = Math.min(5, gameState.energy + 2);
+        // 风险：病毒可能恢复
+        if (Math.random() > 0.6) {
+          gameState.virusHP = Math.min(100, gameState.virusHP + 15);
+          msg = "⚠️ 记忆覆写失败！病毒恢复了部分数据。";
+        } else {
+          msg = "记忆覆写成功，能量恢复。";
+        }
+      }
+
+      status.textContent = msg;
+      updateBattleUI();
+
+      if (gameState.virusHP <= 0) {
+        setTimeout(() => {
+          log("✅ 病毒清除！进入下一阶段……", 'success');
+          gameState.level++;
+          startLevel();
+        }, 1000);
+      } else if (gameState.energy <= 0 && gameState.virusHP > 0) {
+        setTimeout(() => {
+          gameState.ending = 'C';
+          showEnding('C');
+        }, 1000);
+      }
+    }
+
+    function chooseEnding(key) {
+      gameState.ending = key;
+      showEnding(key);
+    }
+
+    function showEnding(key) {
+      clearLog();
+      const endings = {
+        A: "【结局A：真实守护者】\n你摧毁了 HD 158729 B。\n联邦封锁了该区域……\n但三个月后，深空阵列在另一星系\n检测到新的‘13’信号……",
+        B: "【结局B：新纪元之子】\n你接受了‘复制品’的身份。\n意识融入 HD 158729 B，\n成为宇宙的记忆管理员。\n从此，现实与镜像共存。",
+        C: "【结局C：瘟疫传播者】\n你释放了信息危害病毒。\n全联邦开始‘记得’不存在的历史。\n人类文明在虚假记忆中繁荣……\n直到无人记得‘真实’为何物。"
+      };
+      const color = key === 'C' ? 'danger' : (key === 'B' ? 'success' : '');
+      log(endings[key], color);
+      log("\n—— 任务日志终止 ——", 'success');
+    }
+
+    // 键盘支持
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' && !inputArea.classList.contains('hidden')) {
+        e.preventDefault();
+      }
+      if (e.key === ' ' && continueBtn.classList.contains('hidden') === false) {
+        e.preventDefault();
+        nextLevel();
+      }
+    });
+
+    // 启动游戏
+    startLevel();
+  </script>
+</body>
+</html>
